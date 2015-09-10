@@ -1,11 +1,15 @@
 ##-------------------------------Question 1-------------------------------------
 ##Consider the data set given below
 
-##x <- c(0.18, -1.54, 0.42, 0.95)
+x <- c(0.18, -1.54, 0.42, 0.95)
 ##And weights given by
 
-##w <- c(2, 1, 3, 1)
+w <- c(2, 1, 3, 1)
 ##Give the value of ?? that minimizes the least squares equation ???ni=1wi(xi?????)2
+
+weighted.mean(x, w)
+
+0.1471
 
 ##-------------------------------Question 2-------------------------------------
 
@@ -21,11 +25,9 @@
 x <- c(0.8, 0.47, 0.51, 0.73, 0.36, 0.58, 0.57, 0.85, 0.44, 0.42)
 y <- c(1.39, 0.72, 1.55, 0.48, 1.19, -1.59, 1.23, -0.65, 1.49, 0.05)
 
-linearmod <- lm(y ~ x)
+linearmod <- lm(y ~ 0 + x) ##regression through origin with 0
 
-linearmod$coefficients[2]
-
--1.712846 
+0.8263  
 
 ##-------------------------------Question 3-------------------------------------
 
@@ -51,12 +53,29 @@ linearmod$coefficients[2]
 ##two variables is .5. What value would the slope coefficient for the regression
 ##model with Y as the outcome and X as the predictor?
 
+The slope a is given as the correlation r multiplied by the standard dev of y
+divided by the standard dev of x.
+
+a = r(sdy/sdx)
+
+slope = .5*(2/1)
+
+1
+
+
 ##-------------------------------Question 5-------------------------------------
 
 ##Students were given two hard tests and scores were normalized to have 
 ##empirical mean 0 and variance 1. The correlation between the scores on the two
 ##tests was 0.4. What would be the expected score on Quiz 2 for a student who 
 ##had a normalized score of 1.5 on Quiz 1?
+
+cor(X,Y)* Xi
+
+0.4*1.5
+
+0.6
+
 
 ##-------------------------------Question 6-------------------------------------
 
@@ -72,7 +91,7 @@ normx <- scale(x)
 
 normx[1]
 
-[1] -0.9718658
+-0.9718658
 
 ##-------------------------------Question 7-------------------------------------
 
@@ -93,6 +112,8 @@ linearmod$coefficients[1]
 
 ##You know that both the predictor and response have mean 0. What can be said 
 ##about the intercept when you fit a linear regression?
+
+It must be identically 0.
 
 ##-------------------------------Question 9-------------------------------------
 
@@ -115,5 +136,21 @@ mean(x)
 ##Let the slope having fit Y as the outcome and X as the predictor be denoted as
 ##??1. Let the slope from fitting X as the outcome and Y as the predictor be 
 ##denoted as ??1. Suppose that you divide ??1 by ??1; in other words consider 
-##??1/??1. What is this ratio always equal to?
+##??1 by ??1. What is this ratio always equal to?
+
+x <- c(0.8, 0.47, 0.51, 0.73, 0.36, 0.58, 0.57, 0.85, 0.44, 0.42)
+y <- c(1.39, 0.72, 1.55, 0.48, 1.19, -1.59, 1.23, -0.65, 1.49, 0.05)
+
+
+B1 <- lm(y ~ x) ##y as outcome, x as predictor
+Y1 <- lm(x ~ y) ##x as outcome, y as predictor
+
+B1$coefficients[2]/Y1$coefficients[2]
+
+38.39077
+
+var(y)/var(x)
+
+38.39077
+
 
