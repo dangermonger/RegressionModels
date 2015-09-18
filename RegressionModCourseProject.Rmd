@@ -16,39 +16,82 @@ fontsize: 5pt
 
 ##------------------------------------------------------------------------------
 
-To get a quick grasp of our question, we can subset our data into two 
-dataframes, one where the transmission is automatic and the other manual. We 
-can then take the mean of the mpg column in each and we find that automatic
-transmission has the lowest corresponding mpg on average. 
+# Create factors for the categorial variables
+cars <- mtcars
+cars$am <- factor(mtcars$am, levels=c(0,1), labels=c("automatic", "manual"))
+cars$cyl <- factor(mtcars$cyl)
+cars$vs <- factor(mtcars$vs, levels=c(0,1), labels=c("s", "v"))
+cars$gear <- factor(mtcars$gear)
+cars$carb <- factor(mtcars$carb)
 
-auto = mtcars[which(mtcars$am == "0"),]
 
-manual = mtcars[which(mtcars$am == "1"),]
+summary(lm(mpg ~ . , data = cars))$coefficients
 
-mean(auto$mpg)
+summary(lm(mpg ~ am, data = cars))
 
-mean(manual$mpg)
+Here automatic is the reference category since it's the first level by alphabetical order.
+
+cars$am2 <- relevel(cars$am, "manual")
+
+summary(lm(mpg ~ am2, data = cars))
+
+require(datasets); data(cars); require(GGally); require(ggplot2)
+g = ggpairs(cars, lower = list(continuous = "smooth"),params = c(method = "loess"))
+g
+
+Our models estimates an expected 2.5 increase in mpg for every 1% increase in percentage of males involved in agriculture in holding the remaining variables constant.
+
+require(datasets); data(swiss); require(GGally); require(ggplot2)
+g = ggpairs(swiss, lower = list(continuous = "smooth"),params = c(method = "loess"))
+g
+
+summary(lm(Fertility ~ . , data = swiss))
+
+summary(lm(Fertility ~ . , data = swiss))$coefficients
+
+Our models estimates an expected 0.17 decrease in standardized fertility for every 1% increase in percentage of males involved in agriculture in holding the remaining variables constant.
+##------------------------------------------------------------------------------
+
+To get a quick glimpse of the answer, we compute the mean of mpg by transmission
+and we indeed find that manual (1) has the highest corresponding mpg on average.
+
+aggregate(mpg~am, data=cars, mean)
+
+cars <- mtcars
+cars$am <- factor(mtcars$am, levels=c(0,1), labels=c("auto", "manual"))
+cars$cyl <- factor(mtcars$cyl)
+cars$vs <- factor(mtcars$vs, levels=c(0,1), labels=c("s", "v"))
+cars$gear <- factor(mtcars$gear)
+cars$carb <- factor(mtcars$carb)
+
+plot(cars$mpg~cars$am, xlab="Transmission", ylab="MPG", main="Boxplots of MPG by Transmission")
+
+
+
+
 
 
 ##------------------------------------------------------------------------------
 
-data <- mtcars
+It might seem that but there are several other factors that we need to consider.
 
-mtcars$cyl <- factor(mtcars$cyl)
+According to the EPA's 'Factors Affecting Automotive Fuel Economy' document, the 
+most important vehicle design features affecting fuel economy are vehicle weight 
+and engine displacement. We'll need to examine the data again to factor out 
+these features and view the effect of gearing on it's own.
+
+##------------------------------------------------------------------------------
+
+Let's first prepare the data for use.
+
 mtcars$am <- factor(mtcars$am)
 mtcars$gear <- factor(mtcars$gear)
-mtcars$carb <- factor(mtcars$carb)
 levels(mtcars$am) <- c("auto", "manual")
+mtcars
+
+
 
 ##------------------------------------------------------------------------------
-
-http://www.driverside.com/auto-library/top_10_factors_contributing_to_fuel_economy-317
-
-Three major factors in fuel economy that are measured in the mtcars data are 
-engine displacement, vehicle weight, and gearing transmission.
-
-
-
 
 x1 = auto$mpg
 y1 = auto$am
