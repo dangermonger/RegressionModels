@@ -57,6 +57,15 @@ and we indeed find that manual (1) has the highest corresponding mpg on average.
 
 aggregate(mpg~am, data=cars, mean)
 
+A simple plot also highlights the difference.
+
+plot(cars$mpg~cars$am, xlab="Transmission", ylab="MPG", main="Boxplots of MPG by Transmission")
+
+According to the EPA's 'Factors Affecting Automotive Fuel Economy' document, the 
+most important vehicle design features affecting fuel economy are vehicle weight 
+and engine displacement. We'll need to examine the data again to factor out 
+these features and view the effect of gearing on it's own.
+
 cars <- mtcars
 cars$am <- factor(mtcars$am, levels=c(0,1), labels=c("auto", "manual"))
 cars$cyl <- factor(mtcars$cyl)
@@ -64,21 +73,82 @@ cars$vs <- factor(mtcars$vs, levels=c(0,1), labels=c("s", "v"))
 cars$gear <- factor(mtcars$gear)
 cars$carb <- factor(mtcars$carb)
 
-plot(cars$mpg~cars$am, xlab="Transmission", ylab="MPG", main="Boxplots of MPG by Transmission")
+Let's have a look at our data and tease out the significant factors affecting mpg.
+
+names(cars)
+
+Let's first create a maximal model that includes all the predictors.
+
+maxmod = lm(mpg ~ am + cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb, data=cars)
+summary(maxmod)
+
+We can then use the step function to select the best models by relative likelihood.
+
+minmod <- step(maxmod, direction="backward")
+
+summary(minmod)
+
+Now all the predictors are significant and we have reached the minimal adequate model.
+We have an adjusted R squared of 0.84 which suggests that our model is quite accurate.
+
+resmod = resid(minmod)
+
+plot(cars$mpg, resmod, ylab="Residuals", xlab="MPG", main="Residuals V Fitted") 
+abline(0, 0) 
+
+These residuals appear exhibit homogeneity, normality, and independence. 
+
+plot(fitted(minmod), residuals(minmod), xlab = "Fitted Values", ylab = "Residuals", main="Residuals V Fitted")
+abline(h=0, lty=2)
+lines(smooth.spline(fitted(minmod), residuals(minmod)))
 
 
+Now, using ANOVA, we will compare the base model with only am as the predictor variable and the best model obtained above:
+
+basemod <- lm(mpg ~ am, data = cars)
+
+anova(basemod, minmod)
+
+confint(minmod)
+
+Now that we know our major factors, let's create a continuous and discrete pairwise plot to see what's going on.
+
+library(GGally)
+subcars = subset(cars, select=c("mpg", "am", "cyl", "hp", "wt"))
+ggpairs(subcars, diag=list(continuous="density", discrete="bar"), axisLabels="show")
+
+Negative, almost linear correlation between both weight, horsepower and mpg, the higher the weight and horsepower, the lower the mpg.
+Higher average fuel economy for manual cars and lower mpg as the number of cylinders rises.
+Automatic cars are generally heavier than manual and the number of cylinders also results in greater weight.
+Weight is positively correlated with horsepower.
+Horsepower appears to be greater for automatic cars, however, manual cars have high outliers that shouldn't be ignored. This is due to the fact that in our data, automatic cars tend to have more cylinders. Multi-colinearity
+
+A key observation is that automatic cars in our data tend to have more cylinders and manual tend to have fewer and an increase in cylinders is correlated with an increase in weight which in turn is negatively correlated with mpg. Whatever tendency automatic cars have for being heavier than manuals is compounded by this issue in the data.
+
+summary(lm(data=mtcars, formula=mpg ~ am))
 
 
+summary(minmod)
 
+summary(lm(mpg ~ am -1, data = cars))$coef ##returns the mean mpg for each factor, without the intercept
+
+summary(lm(mpg ~ am, data = cars))$coef
+
+Here automatic is the reference category since it's the first level by alphabetical order.
+
+The coefficient shows the difference in mean mpg between automatic, the reference category, and manual. The intercept is the mean of automatic.
+
+cars$am2 <- relevel(cars$am, "manual")
+
+summary(lm(mpg ~ am2, data = cars))$coef
+
+17.147+7.244
 
 ##------------------------------------------------------------------------------
 
 It might seem that but there are several other factors that we need to consider.
 
-According to the EPA's 'Factors Affecting Automotive Fuel Economy' document, the 
-most important vehicle design features affecting fuel economy are vehicle weight 
-and engine displacement. We'll need to examine the data again to factor out 
-these features and view the effect of gearing on it's own.
+
 
 ##------------------------------------------------------------------------------
 
