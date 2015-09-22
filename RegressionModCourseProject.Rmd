@@ -49,22 +49,9 @@ summary(lm(Fertility ~ . , data = swiss))
 
 summary(lm(Fertility ~ . , data = swiss))$coefficients
 
-Our models estimates an expected 0.17 decrease in standardized fertility for every 1% increase in percentage of males involved in agriculture in holding the remaining variables constant.
 ##------------------------------------------------------------------------------
 
-To get a quick glimpse of the answer, we compute the mean of mpg by transmission
-and we indeed find that manual (1) has the highest corresponding mpg on average.
-
-aggregate(mpg~am, data=cars, mean)
-
-A simple plot also highlights the difference.
-
-plot(cars$mpg~cars$am, xlab="Transmission", ylab="MPG", main="Boxplots of MPG by Transmission")
-
-According to the EPA's 'Factors Affecting Automotive Fuel Economy' document, the 
-most important vehicle design features affecting fuel economy are vehicle weight 
-and engine displacement. We'll need to examine the data again to factor out 
-these features and view the effect of gearing on it's own.
+Before we begin, we first need to manipulate our data somewhat and convert some of our numerical variables to factor variables.
 
 cars <- mtcars
 cars$am <- factor(mtcars$am, levels=c(0,1), labels=c("auto", "manual"))
@@ -73,60 +60,131 @@ cars$vs <- factor(mtcars$vs, levels=c(0,1), labels=c("s", "v"))
 cars$gear <- factor(mtcars$gear)
 cars$carb <- factor(mtcars$carb)
 
+To get a quick glimpse of the answer, we can compute the mean of mpg by transmission and we indeed find that manual has the highest corresponding mpg on average.
+
+aggregate(mpg~am, data=cars, mean)
+
+A simple plot highlights the difference.
+
+plot(cars$mpg~cars$am, xlab="Transmission", ylab="MPG", main="Boxplots of MPG by Transmission")
+
+summary(lm(mpg ~ am -1, data = cars))$coef ##returns the mean mpg for each factor, without the intercept
+
+summary(lm(mpg ~ am, data = cars))$coef
+
+A simple model suggests that manual cars add 7.2mpg to fuel economy but the most obvious vehicle design features affecting fuel economy such as vehicle weight are not accounted for. We'll need to examine the data again to factor out these features and view the effect of transmission on it's own.
+
 Let's have a look at our data and tease out the significant factors affecting mpg.
 
-names(cars)
+Did the student fit multiple models and detail their strategy for model selection?
 
 Let's first create a maximal model that includes all the predictors.
 
 maxmod = lm(mpg ~ am + cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb, data=cars)
 summary(maxmod)
 
-We can then use the step function to select the best models by relative likelihood.
+We can then use the step function to select the best model by relative likelihood.
 
-minmod <- step(maxmod, direction="backward")
+step(maxmod, direction="backward")
+
+minmod <- lm(mpg ~ am + cyl + hp + wt, data = cars)
 
 summary(minmod)
 
 Now all the predictors are significant and we have reached the minimal adequate model.
 We have an adjusted R squared of 0.84 which suggests that our model is quite accurate.
 
-resmod = resid(minmod)
+Manual transmission now results in a predicted 1.8 increase in mpg when compared to automatic, holding all other variables constant. 
 
-plot(cars$mpg, resmod, ylab="Residuals", xlab="MPG", main="Residuals V Fitted") 
-abline(0, 0) 
+##---------------------------------pairwise---------------------------------------------
 
-These residuals appear exhibit homogeneity, normality, and independence. 
-
-plot(fitted(minmod), residuals(minmod), xlab = "Fitted Values", ylab = "Residuals", main="Residuals V Fitted")
-abline(h=0, lty=2)
-lines(smooth.spline(fitted(minmod), residuals(minmod)))
-
-
-Now, using ANOVA, we will compare the base model with only am as the predictor variable and the best model obtained above:
-
-basemod <- lm(mpg ~ am, data = cars)
-
-anova(basemod, minmod)
-
-confint(minmod)
-
-Now that we know our major factors, let's create a continuous and discrete pairwise plot to see what's going on.
+Now that we know our major factors, let's create a continuous and discrete pairwise plot to see how our predictors interplay.
 
 library(GGally)
 subcars = subset(cars, select=c("mpg", "am", "cyl", "hp", "wt"))
 ggpairs(subcars, diag=list(continuous="density", discrete="bar"), axisLabels="show")
 
-Negative, almost linear correlation between both weight, horsepower and mpg, the higher the weight and horsepower, the lower the mpg.
-Higher average fuel economy for manual cars and lower mpg as the number of cylinders rises.
-Automatic cars are generally heavier than manual and the number of cylinders also results in greater weight.
+There is a negative, almost linear correlation between both weight, horsepower and mpg. The higher the weight and horsepower, the lower the mpg.
+Average fuel economy for manual cars and lower mpg as the number of cylinders rises.
 Weight is positively correlated with horsepower.
-Horsepower appears to be greater for automatic cars, however, manual cars have high outliers that shouldn't be ignored. This is due to the fact that in our data, automatic cars tend to have more cylinders. Multi-colinearity
+Horsepower appears to be greater for automatic cars, however, manual cars have high outliers. This is due to the fact that in our data, automatic cars tend to have more cylinders. 
 
-A key observation is that automatic cars in our data tend to have more cylinders and manual tend to have fewer and an increase in cylinders is correlated with an increase in weight which in turn is negatively correlated with mpg. Whatever tendency automatic cars have for being heavier than manuals is compounded by this issue in the data.
+A key observation is that automatic cars in our data tend to have more cylinders and manual tend to have fewer and an increase in cylinders is correlated with an increase in weight which in turn is negatively correlated with mpg. Whatever tendency automatic cars have for being heavier than manuals in general is compounded by this bias in the data. We can't truly answer "Is an automatic or manual transmission better for MPG" without limiting the statement to our data and not the general population.
+
+A simple plot highlights this difference.
+
+ggplot(cars, aes(cyl)) + geom_bar() + facet_wrap(~ am)
+
+
+##---------------------------------pairwise end ---------------------------------------------
+
+
+
+##-------------------------------residuals-----------------------------------------------
+
+Let's plot the contribution made by each of our predictors.
+
+par(mfrow=c(2,2))
+termplot(minmod, partial = TRUE, smooth = panel.smooth)
+mtext(expression(bold("Contribution by Predictor")), side = 3, line = -18, outer = TRUE)
+
+Controlling for all other factors, transmission is actually the weakest contributer in our model. Weight and horsepower are the major contributers but most of the horsepower contribution might be explained by weight as an increase in horsepower results in an increase in weight.
+
+Let's have a look at the residuals.
+
+plot(minmod)
+
+The residual plots appear to exhibit homogeneity, normality, and independence. However, we must be careful about putting too much weight on these plots as they are based on quite a small data set.
+
+Residuals vs Fitted
+
+When a linear regression model is suitable for a data set, the residuals are more or less randomly distributed around the 0 line, which appears to be the case here. This suggests that the assumption that the relationship is linear is reasonable. The residuals also appear to roughly form a horizontal band around the 0 line. This suggests that the variances of the error terms are equal.
+
+Normal Q-Q
+
+A quantile normal plot is good for checking normality. The plot shows more variance than you would expect than in a normal distribution but our model doesn't account for all the variance so this is understandable.
+
+Scale-Location
+
+For a good model, the values should be more or less randomly distributed. Like the first residuals v fitted plot, there is no discernable pattern to the plot.
+
+Residuals vs Leverage
+
+Note that the standardized residuals are more or less centered around zero and reach 2-3 standard deviations away from zero, and symmetrically so about zero, as would be expected for a normal distribution. No point has a large Cook's distance, that is >0.5.
+
+
+
+##---------------------------------residuals end---------------------------------------------
+
+A question that might arise is whether to remove hp from our model altogether as it is generally explained by other factors.
+
+Now, using ANOVA, we will compare a base model with only am as the predictor variable and the minimal model obtained above:
+
+basemod <- lm(mpg ~ am, data = cars)
+
+anova(basemod, minmod)
+
+model2 = update(minmod, .~.-hp)
+
+plot(model2)
+
+anova(model2, minmod)
+anova(minmod, model2)
+
+The sum of squares explains the variation provided by hp. Because the p-value is below threshold, we can assume that the data provides evidence for an additive effect of hp.
+
+summary(model2)
+
+summary(minmod)
+
+
+confint(minmod)
+
+
+
+##------------------------------------------------------------------------------
 
 summary(lm(data=mtcars, formula=mpg ~ am))
-
 
 summary(minmod)
 
@@ -143,53 +201,6 @@ cars$am2 <- relevel(cars$am, "manual")
 summary(lm(mpg ~ am2, data = cars))$coef
 
 17.147+7.244
-
-##------------------------------------------------------------------------------
-
-It might seem that but there are several other factors that we need to consider.
-
-
-
-##------------------------------------------------------------------------------
-
-Let's first prepare the data for use.
-
-mtcars$am <- factor(mtcars$am)
-mtcars$gear <- factor(mtcars$gear)
-levels(mtcars$am) <- c("auto", "manual")
-mtcars
-
-
-
-##------------------------------------------------------------------------------
-
-x1 = auto$mpg
-y1 = auto$am
-
-x2 = manual$mpg
-y2 = manual$am
-
-
-linearauto = lm(y1 ~ x1) ##outcome/predictor 
-linearman = lm(y2 ~ x2) ##outcome/predictor 
-
-modelcomp = anova(linearauto, linearman)
-
-##------------------------------------------------------------------------------
-
-library(ggplot2)
-
-g = ggplot(mtcars, aes(x = am, y = mpg ),)
-
-g = g + xlab("Transmission")
-g = g + ylab("MPG")
-g = g + geom_point(size = 6, colour = "black", alpha = 0.2 )
-g = g + geom_point(size = 5, colour = "blue", alpha = 0.2 )
-g = g + geom_smooth(method = "lm", colour = "black")
-g
-
-
-
 
 
 
