@@ -9,297 +9,43 @@ geometry: tmargin=1cm, lmargin=1cm, rmargin=1cm, bmargin = 1.5cm
 fontsize: 5pt
 ---
 
-**Executive Summary
+# Introduction
 
-"Is an automatic or manual transmission better for MPG"
-"Quantify the MPG difference between automatic and manual transmissions"
-
-##------------------------------------------------------------------------------
-
-# Create factors for the categorial variables
-cars <- mtcars
-cars$am <- factor(mtcars$am, levels=c(0,1), labels=c("automatic", "manual"))
-cars$cyl <- factor(mtcars$cyl)
-cars$vs <- factor(mtcars$vs, levels=c(0,1), labels=c("s", "v"))
-cars$gear <- factor(mtcars$gear)
-cars$carb <- factor(mtcars$carb)
+To get a quick glimpse of the answer, we can compute the mean of mpg by transmission and we find that manual has higher corresponding mpg on average than automatic transmission (Figure 1.).
 
 
-summary(lm(mpg ~ . , data = cars))$coefficients
 
-summary(lm(mpg ~ am, data = cars))
-
-Here automatic is the reference category since it's the first level by alphabetical order.
-
-cars$am2 <- relevel(cars$am, "manual")
-
-summary(lm(mpg ~ am2, data = cars))
-
-require(datasets); data(cars); require(GGally); require(ggplot2)
-g = ggpairs(cars, lower = list(continuous = "smooth"),params = c(method = "loess"))
-g
-
-Our models estimates an expected 2.5 increase in mpg for every 1% increase in percentage of males involved in agriculture in holding the remaining variables constant.
-
-require(datasets); data(swiss); require(GGally); require(ggplot2)
-g = ggpairs(swiss, lower = list(continuous = "smooth"),params = c(method = "loess"))
-g
-
-summary(lm(Fertility ~ . , data = swiss))
-
-summary(lm(Fertility ~ . , data = swiss))$coefficients
-
-##------------------------------------------------------------------------------
-
-Before we begin, we first need to manipulate our data somewhat and convert some of our numerical variables to factor variables.
-
-cars <- mtcars
-cars$am <- factor(mtcars$am, levels=c(0,1), labels=c("auto", "manual"))
-cars$cyl <- factor(mtcars$cyl)
-cars$vs <- factor(mtcars$vs, levels=c(0,1), labels=c("s", "v"))
-cars$gear <- factor(mtcars$gear)
-cars$carb <- factor(mtcars$carb)
-
-To get a quick glimpse of the answer, we can compute the mean of mpg by transmission and we indeed find that manual has the highest corresponding mpg on average.
-
+```{r echo=FALSE}
 aggregate(mpg~am, data=cars, mean)
 
-A simple plot highlights the difference.
-
-plot(cars$mpg~cars$am, xlab="Transmission", ylab="MPG", main="Boxplots of MPG by Transmission")
-
-summary(lm(mpg ~ am -1, data = cars))$coef ##returns the mean mpg for each factor, without the intercept
-
 summary(lm(mpg ~ am, data = cars))$coef
-
-A simple model suggests that manual cars add 7.2mpg to fuel economy but the most obvious vehicle design features affecting fuel economy such as vehicle weight are not accounted for. We'll need to examine the data again to factor out these features and view the effect of transmission on it's own.
-
-Let's have a look at our data and tease out the significant factors affecting mpg.
-
-Did the student fit multiple models and detail their strategy for model selection?
-
-Let's first create a maximal model that includes all the predictors.
-
-maxmod = lm(mpg ~ am + cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb, data=cars)
-summary(maxmod)
-
-We can then use the step function to select the best model by relative likelihood.
-
-step(maxmod, direction="backward")
-
-minmod <- lm(mpg ~ am + cyl + hp + wt, data = cars)
-
-summary(minmod)
-
-Now all the predictors are significant and we have reached the minimal adequate model.
-We have an adjusted R squared of 0.84 which suggests that our model is quite accurate.
-
-Manual transmission now results in a predicted 1.8 increase in mpg when compared to automatic, holding all other variables constant. 
-
-##---------------------------------pairwise---------------------------------------------
-
-Now that we know our major factors, let's create a continuous and discrete pairwise plot to see how our predictors interplay.
-
-library(GGally)
-subcars = subset(cars, select=c("mpg", "am", "cyl", "hp", "wt"))
-ggpairs(subcars, diag=list(continuous="density", discrete="bar"), axisLabels="show")
-
-There is a negative, almost linear correlation between both weight, horsepower and mpg. The higher the weight and horsepower, the lower the mpg.
-Average fuel economy for manual cars and lower mpg as the number of cylinders rises.
-Weight is positively correlated with horsepower.
-Horsepower appears to be greater for automatic cars, however, manual cars have high outliers. This is due to the fact that in our data, automatic cars tend to have more cylinders. 
-
-A key observation is that automatic cars in our data tend to have more cylinders and manual tend to have fewer and an increase in cylinders is correlated with an increase in weight which in turn is negatively correlated with mpg. Whatever tendency automatic cars have for being heavier than manuals in general is compounded by this bias in the data. We can't truly answer "Is an automatic or manual transmission better for MPG" without limiting the statement to our data and not the general population.
-
-A simple plot highlights this difference.
-
-ggplot(cars, aes(cyl)) + geom_bar() + facet_wrap(~ am)
-
-
-##---------------------------------pairwise end ---------------------------------------------
-
-
-
-##-------------------------------residuals-----------------------------------------------
-
-Let's plot the contribution made by each of our predictors.
-
-par(mfrow=c(2,2))
-termplot(minmod, partial = TRUE, smooth = panel.smooth)
-mtext(expression(bold("Contribution by Predictor")), side = 3, line = -18, outer = TRUE)
-
-Controlling for all other factors, transmission is actually the weakest contributer in our model. Weight and horsepower are the major contributers but most of the horsepower contribution might be explained by weight as an increase in horsepower results in an increase in weight.
-
-Let's have a look at the residuals.
-
-plot(minmod)
-
-The residual plots appear to exhibit homogeneity, normality, and independence. However, we must be careful about putting too much weight on these plots as they are based on quite a small data set.
-
-Residuals vs Fitted
-
-When a linear regression model is suitable for a data set, the residuals are more or less randomly distributed around the 0 line, which appears to be the case here. This suggests that the assumption that the relationship is linear is reasonable. The residuals also appear to roughly form a horizontal band around the 0 line. This suggests that the variances of the error terms are equal.
-
-Normal Q-Q
-
-A quantile normal plot is good for checking normality. The plot shows more variance than you would expect than in a normal distribution but our model doesn't account for all the variance so this is understandable.
-
-Scale-Location
-
-For a good model, the values should be more or less randomly distributed. Like the first residuals v fitted plot, there is no discernable pattern to the plot.
-
-Residuals vs Leverage
-
-Note that the standardized residuals are more or less centered around zero and reach 2-3 standard deviations away from zero, and symmetrically so about zero, as would be expected for a normal distribution. No point has a large Cook's distance, that is >0.5.
-
-
-
-##---------------------------------residuals end---------------------------------------------
-
-A question that might arise is whether to remove hp from our model altogether as it is generally explained by other factors.
-
-Now, using ANOVA, we will compare a base model with only am as the predictor variable and the minimal model obtained above:
-
-basemod <- lm(mpg ~ am, data = cars)
-
-anova(basemod, minmod)
-
-model2 = update(minmod, .~.-hp)
-
-plot(model2)
-
-anova(model2, minmod)
-anova(minmod, model2)
-
-The sum of squares explains the variation provided by hp. Because the p-value is below threshold, we can assume that the data provides evidence for an additive effect of hp.
-
-summary(model2)
-
-summary(minmod)
-
-
-confint(minmod)
-
-
-
-##------------------------------------------------------------------------------
-
-summary(lm(data=mtcars, formula=mpg ~ am))
-
-summary(minmod)
-
-summary(lm(mpg ~ am -1, data = cars))$coef ##returns the mean mpg for each factor, without the intercept
-
-summary(lm(mpg ~ am, data = cars))$coef
-
-Here automatic is the reference category since it's the first level by alphabetical order.
-
-The coefficient shows the difference in mean mpg between automatic, the reference category, and manual. The intercept is the mean of automatic.
-
-cars$am2 <- relevel(cars$am, "manual")
-
-summary(lm(mpg ~ am2, data = cars))$coef
-
-17.147+7.244
-
-
-
-##Get a 95% confidence interval for the expected mpg at the 
-##average weight.
-
-x = mtcars$am
-y = mtcars$mpg
-
-linearmod = lm(y ~ x) ##outcome/predictor
-
-summary(linearmod)
-
-newdata = data.frame(x=mean(x))
-
-predict(linearmod, newdata, interval = ("confidence"))
-
-
-
-
-
-
-
-
-
-First we need to find the mean of 40 exponential distributions and iterate 1000 
-times. Then we can simply take the mean of this vector and compare against the
-theoretical mean of 1/lambda. Here we find close agreement of **4.986508** and 
-**5**, respectively. 
-```{r}
-set.seed(42) ##specify random seed state 
-lambda=.2 ##set lambda value
-expno=40 ##set number of exponentials
-simno=1000 ##set number of simulations
-
-exdis = rep(NA,simno) ##create an empty vector with 1000 elements
-
-for (i in 1:simno){ ##for every element in exdis...
-  exdis[i] = mean(rexp(expno,lambda)) ##populate with the mean of 40 exponentials
-}
-
-samean=mean(exdis) ##assign the mean of exdis to samean
-theomean=1/lambda ##assign the theoretical mean to theomean
-```
-To appreciate this graphically, we first need to calculate, then plot, the 
-moving average, or cumulative mean of our exponentials. The CLT suggests that 
-this cumulative mean should converge on the theoretical mean as the iterations 
-increase, which is in agreement with the graphic below.
-```{r}
-cumean = cumsum(exdis)/seq_along(exdis) ##mean of each cumulative sum
-
-par(mar=c(3,11,1,1)+1.5, cex=0.7) ##set margins and font size
-
-plot(seq_along(exdis), cumean, type="l",
-     main="Means of 40 Exponentials",xlab="No of Iterations", 
-     ylab="Mean")
-       abline(h=theomean, col="goldenrod3") ##theoretical mean line
-     legend("topright", legend=c("Theoretical Mean","Sample Mean"),
-       col=c("goldenrod3","black"), lwd=c(2,2), cex=.7, bty="n")
 ```
 
-**2. Show how variable the sample is (via variance) and compare it to the theoretical variance of the distribution.**
-
-Similar to above, we can take the variance of our vector and compare against the 
-theoretical variance of 40 distributions. In this case we find that **0.6344405** 
-and **0.625** match closely.
-
-Next we need to calculate the cumulative variance to plot the change in 
-variance with iteration. As was seen above, the greater the number of 
-iterations, the closer the sample variance gets to the theoretical variance.
 ```{r}
-samvar = var(exdis) ##assign sample variance to samvar
-theovar = 1/((lambda^2)*expno) ##theoretical variance for 40 distributions
-cumvar = cumsum((exdis-samean)^2)/(seq_along(exdis)-1) ##cumulative variance
-
-par(mar=c(3,11,1,1)+1.5, cex=0.7) ##set margins and font size
-
-plot(seq_along(exdis),cumvar,type="l",
-     main="Variance of 40 Exponentials",
-     xlab="No of Iterations", ylab="Variance")
-abline(h=theovar, col="goldenrod3") ##theoretical variance line
-legend("topright", legend=c("Theoretical Variance","Sample Variance"),
-       col=c("goldenrod3","black"), lwd=c(2,2),cex=.7,bty="n")
+vif(minmod)
 ```
-\newpage
 
-**3. Show that the distribution is approximately normal.**
+It appears that cyl is a little highly correlated. Let's test before we throw it out.
 
-Below we have superimposed a normal distribution curve with the theoretical mean
-and standard deviation over a histogram of our data. We can see that both are in 
-general agreement with the data, meaning that the data is approximately normal.
-```{r}
-par(mar=c(3,11,1,1)+1.5, cex=0.7) ##set margins and font size
+```{r echo=FALSE}
+minmod2 = update(minmod,.~. - cyl)
 
-hist(exdis,breaks=30, freq=FALSE, col="slategray2", 
-     main="Comparison of Sample Exponentials to Normal Distribution", xlab="Value",ylab="Density")
-curve(dnorm(x, mean=theomean, sd=sqrt(theovar)),
-      add=TRUE,lwd=2, col="goldenrod3") ##normal distribution curve
-abline(v=theomean,lwd=2,col="violetred3") ##theoretical mean line
-legend("topright", legend=c("Theoretical Mean","Theoretical Distribution"),
-       col=c("violetred3","goldenrod3"), lty=c(1,1),lwd=c(2,2),cex=.8,bty="n")
+vif(minmod2)
 ```
+This looks better, but let's do an ANOVA test to see how significant the change is.
+
+```{r echo=FALSE}
+anova(minmod2, minmod)
+```
+
+Not very significant but I won't disregard it without seeing what it does to the adjusted R squared value.
+```{r echo=FALSE}
+
+summary(minmod)$adj.r.squared
+summary(minmod2)$adj.r.squared
+```
+
+On balance, I think removing it would be too costly to the model fit so it's staying.
+
+
+
