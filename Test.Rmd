@@ -1,6 +1,7 @@
 ---
-title: "Regression Models Course Project - Kevin O'Leary"
-output: pdf_document
+title: "Transmission Effect on MPG - Kevin O'Leary"
+output:
+  pdf_document:
 fontsize: 10pt
 geometry: margin=0.5in
 ---
@@ -11,7 +12,8 @@ geometry: margin=0.5in
 
 In this report we are interested in exploring the relationship between a set of variables and miles per gallon (MPG) in the mtcars dataset using regression models and exploratory data analyses. In particular we are interested in whether automatic or manual transmission is better for MPG. This report will quantify the MPG difference between automatic and manual transmissions within a 95% confidence interval.
 
-Before we begin, we first need to manipulate our data somewhat and convert some of our numerical variables to factor variables.
+Before we begin, we first need to manipulate our data somewhat and convert some of our numerical variables to factor variables. Exploratory data analysis can wait as the practice of selecting our model will identify the most significant factors which we can look at later.
+
 ```{r echo=FALSE}
 library(datasets)
 data(mtcars)
@@ -67,7 +69,7 @@ library(car)
 vif(admod)
 ```
 
-Again, disp is highly correlated so we can disregard our first model in favour of of the second. Now that we are happy with our predictors, we have reached the minimal adequate model. Our model has an adjusted R squared of 0.84 which suggests satisfactory accuracy.
+Again, disp is highly correlated so we can disregard our first model in favour of the second. Now that we are happy with our predictors, we have reached the minimal adequate model. Our model has an adjusted R squared of 0.84 which suggests satisfactory accuracy.
 ```{r echo=FALSE, results='hide'}
 confint(minmod)
 ```
@@ -76,7 +78,7 @@ confint(minmod)
 
 Figure 2 plots the contribution made by each of our predictors.
 
-Controlling for all other factors, transmission is actually the weakest contributer in our model. Weight and horsepower are the major contributers but most of the horsepower contribution might be explained by weight as an increase in horsepower generally results in an increase in weight.
+Controlling for all other factors, transmission is actually the weakest contributor in our model. Weight and horsepower are the major contributors but most of the horsepower contribution might be explained by weight as an increase in horsepower generally results in an increase in weight.
 
 The residual plots in Figure 3 appear to exhibit homogeneity, normality, and independence. However, we must be careful about putting too much weight on these plots as they are based on quite a small data set.
 
@@ -90,26 +92,26 @@ A quantile normal plot is good for checking normality. The plot shows a little m
 
 **Scale-Location**
 
-For a good model, the values should be more or less randomly distributed. Like the first residuals v fitted plot, there is no discernable pattern to the plot.
+For a good model, the values should be more or less randomly distributed. Like the first residuals v fitted plot, there is no discernible pattern to the plot.
 
 **Residuals vs Leverage**
 
 Note that the standardized residuals are more or less centered around zero and reach 2-3 standard deviations away from zero, and symmetrically so about zero, as would be expected for a normal distribution. No point has a large Cook's distance, that is >0.5.
 
-
-
 ##Exploratory Data Analysis
 
-Now that we know our major factors, we can explore the data more closely. Figure 4 shows a continuous and discrete pairwise plot that highlights how our predictors interplay in the data.
+Now that we know our major factors, we can explore the data more closely. Figure 4 shows a continuous and discrete pairwise plot that highlights how all our predictors interplay in the data.
 
 There is a negative, almost linear correlation between both weight, horsepower and mpg. That is, the higher the weight and horsepower, the lower the mpg.
 
 Some observations;
+
 * Average fuel economy is higher for manual cars
 * A rise in the number of cylinders corresponds to lower mpg
 * Weight is positively correlated with horsepower
 * Horsepower appears to be greater for automatic cars, however, manual cars have high outliers
 
+Figure 5 examines the interplay between cylinders, transmission, weight and mpg. In our data, it appears that automatic cars tend to have more cylinders and manual fewer. This is especially significant since cylinders correspond to weight, and an increase in weight reduces mpg.
 
 ***
 ##Conclusions
@@ -138,7 +140,7 @@ c1 <- c("2.60488618", "1.39630450", "1.40728351", "2.28425172", "0.01369257", "0
 d1 <- c("12.940421", "1.295714", "-2.154040", "-0.947214", "-2.345025", "-2.819404")
 e1 <- c("7.733392e-13", "2.064597e-01", "4.068272e-02", "3.522509e-01", "2.693461e-02", "9.081408e-03")
 
-resultsummary1 <- data.frame("Coefficients"=a1,
+resultsummary <- data.frame("Coefficients"=a1,
                             "Estimate."=b1,
                             "Std. Error"=c1,
                             "t value"=d1,
@@ -146,14 +148,16 @@ resultsummary1 <- data.frame("Coefficients"=a1,
 
 library(knitr)
 
-kable(resultsummary1, digits = 7, caption = "Model Summary")
+kable(resultsummary, digits = 7, caption = "Model Summary")
 
 
-a1 <- c("Residual standard error:", "Multiple R-squared:", "Adjusted R-squared:","F-statistic:", "p-value:")
-b1 <- c("2.41 on 26 degrees of freedom", "0.8659", "0.8401", "33.57 on 5 and 26 DF", "1.506e-10")
+a2 <- c("Residual standard error:", "Multiple R-squared:", "Adjusted R-squared:","F-statistic:", "p-value:")
+b2 <- c("2.41 on 26 degrees of freedom", "0.8659", "0.8401", "33.57 on 5 and 26 DF", "1.506e-10")
 
 
-resultsummary1 <- data.frame("Bob"=a1,"BOb"=b1,)
+resultsummary1 <- data.frame("Bob"=a2,"BOb"=b2)
+
+names(resultsummary1) <- NULL 
 
 kable(resultsummary1, digits = 7)
 
@@ -167,39 +171,53 @@ kable(resultsummary1, digits = 7)
 \newpage
 ##Appendix: Figures
 
-Figure 1: Manual v Automatic Transmission boxplot:
+\begin{center}
+\textbf{Figure 1 }: Manual v Automatic Transmission boxplot
+\end{center}
 
-```{r echo=FALSE}
-plot(cars$mpg~cars$am, xlab="Transmission", ylab="MPG", main="Boxplots of MPG by Transmission")
+```{r echo=FALSE,  fig.height=3, fig.width=4, fig.align='center'}
+par(mar=c(5, 4, 0.2, 2)) #bottom, left, top, right
+plot(cars$mpg~cars$am, xlab="Transmission", ylab="MPG")
 ```
 
+\begin{center}
+\textbf{Figure 2 }: Contribution by Predictor
+\end{center}
 
-Figure 2: Relationship between `mpg` and `disp` separated by `am`:
-
-```{r echo=FALSE,  fig.height=4, fig.width=8}
-par(mfrow=c(2,2))
+```{r echo=FALSE,  fig.height=5.5, fig.width=6, fig.align='center'}
+par(mfrow=c(2,2), mar=c(5, 4, 0.2, 2) + 0.1) #bottom, left, top, right
 termplot(minmod, partial = TRUE, smooth = panel.smooth)
-mtext(expression(bold("Contribution by Predictor")), side = 3, line = -18, outer = TRUE)
 ```
 
-Figure 3: Residual plots for the chosen model:
+\begin{center}
+\textbf{Figure 3 }: Residual plots for the chosen model
+\end{center}
 
-```{r echo=FALSE,  fig.height=4, fig.width=8}
+```{r echo=FALSE, fig.height=8, fig.width=8, fig.align='center'}
+par(mfrow=c(2,2), mar=c(5, 4, 0.2, 2) + 0.1) #bottom, left, top, right
 plot(minmod)
 ```
+\newpage
+\begin{center}
+\textbf{Figure 4}: Continuous and discrete pairwise plot of major factors
+\end{center}
 
-Figure 4: Relationship between `mpg` and `wt` separated by `am`:
-
-```{r echo=FALSE,  fig.height=4, fig.width=8}
-
+```{r echo=FALSE, fig.height=6.5, fig.width=10, fig.align='center', message=FALSE}
 library(GGally)
 subcars = subset(cars, select=c("mpg", "am", "cyl", "hp", "wt"))
-ggpairs(subcars, diag=list(continuous="density", discrete="bar"), axisLabels="show")
+gg <- ggpairs(subcars, diag=list(continuous="density", discrete="bar"), axisLabels="show") 
+gg 
 ```
 
-Figure 5: Residual plot and plot of distribution for model `mpg` ~ `am`:
+\begin{center}
+\textbf{Figure 5}: Weight and MPG by Transmission and cylinder number
+\end{center}
 
-```{r echo=FALSE}
+```{r fig.width=8, echo=FALSE}
 library(ggplot2)
-ggplot(cars, aes(cyl)) + geom_bar() + facet_wrap(~ am)
+library(grid)
+facetplot <- ggplot(cars, aes(x = mpg, y = wt, colour = factor(cyl))) + geom_point()
+facetplot + scale_color_brewer(palette="Dark2") + facet_grid(cyl ~ am) + theme(plot.margin=unit(c(0,0,0,2.1),"cm"))
+
 ```
+

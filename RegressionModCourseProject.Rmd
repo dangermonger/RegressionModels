@@ -1,51 +1,222 @@
 ---
-title: "Regression Models Course Project - Kevin O'Leary"
+title: "Transmission Effect on MPG - Kevin O'Leary"
 output:
   pdf_document:
-    fig_crop: no
-    fig_height: 3.55
-    fig_width: 6
-geometry: tmargin=1cm, lmargin=1cm, rmargin=1cm, bmargin = 1.5cm
-fontsize: 5pt
+fontsize: 10pt
+geometry: margin=0.5in
 ---
 
-# Introduction
 
-To get a quick glimpse of the answer, we can compute the mean of mpg by transmission and we find that manual has higher corresponding mpg on average than automatic transmission (Figure 1.).
+
+# Executive summary
+
+In this report we are interested in exploring the relationship between a set of variables and miles per gallon (MPG) in the mtcars dataset using regression models and exploratory data analyses. In particular we are interested in whether automatic or manual transmission is better for MPG. This report will quantify the MPG difference between automatic and manual transmissions within a 95% confidence interval.
+
+Before we begin, we first need to manipulate our data somewhat and convert some of our numerical variables to factor variables. Exploratory data analysis can wait as the practice of selecting our model will identify the most significant factors which we can look at later.
+
+```{r echo=FALSE}
+library(datasets)
+data(mtcars)
+
+cars <- mtcars
+cars$am <- factor(mtcars$am, levels=c(0,1), labels=c("auto", "manual"))
+cars$cyl <- factor(mtcars$cyl)
+cars$vs <- factor(mtcars$vs, levels=c(0,1), labels=c("s", "v"))
+cars$gear <- factor(mtcars$gear)
+cars$carb <- factor(mtcars$carb)
+```
+##Model selection strategy
+
+One approach to model selection is to build up nested models and use the anova function to see if the contribution of each new variable is significant. According to this method, the most significant additions are the number of cylinders, engine displacement, horsepower and weight (cyl, disp, hp and wt, respectively). 
+
+```{r echo=FALSE, results='hide'}
+simpmod = lm(mpg ~ am, data = cars)
+simpmod1 = update(simpmod,.~. + cyl)
+simpmod2 = update(simpmod1,.~. + disp)
+simpmod3 = update(simpmod2,.~. + hp)
+simpmod4 = update(simpmod3,.~. + drat)
+simpmod5 = update(simpmod4,.~. + wt)
+simpmod6 = update(simpmod5,.~. + qsec)
+simpmod7 = update(simpmod6,.~. + vs)
+simpmod8 = update(simpmod7,.~. + gear)
+simpmod9 = update(simpmod8,.~. + carb)
+
+anova(simpmod, simpmod1, simpmod2, simpmod3, simpmod4, simpmod5, simpmod6, simpmod7, simpmod8, simpmod9)
+
+admod = lm(mpg ~ am + cyl + disp + hp + wt, data=cars)
+```
+
+Another way to simplify the variables is to create a maximal model, that includes all the predictors, and remove one term at a time. Here, we can use the step function to select the best model by AIC.
+
+```{r echo=FALSE, results='hide'}
+maxmod = lm(mpg ~ am + cyl + disp + hp + drat + wt + qsec + vs + gear + carb, data=cars)
+
+step(maxmod, direction="backward")
+
+minmod <- lm(mpg ~ am + cyl + hp + wt, data = cars)
+```
+
+This method results in a model with one fewer variable (disp) than our first model. 
+
+```{r echo=FALSE, results='hide'}
+anova(minmod, admod)
+```
+
+Using the anova function we can investigate the difference between our models and find that the p-value isn't significant (0.75) so we can confidently disregard disp at this stage. Just to double-check, we can also use the vif function to measure how much the variance of the estimated regression coefficients are inflated.Again, disp is highly correlated so we can disregard our first model in favour of the second. 
+
+```{r echo=FALSE, results='hide'}
+library(car)
+vif(admod)
+```
+
+Now that we are happy with our predictors, we have reached the minimal adequate model. Our model has an adjusted R squared of 0.84 which suggests satisfactory accuracy.
+```{r echo=FALSE, results='hide'}
+confint(minmod)
+```
+
+##Residual Plots and Diagnostics
+
+Figure 2 plots the contribution made by each of our predictors.
+
+Controlling for all other factors, transmission is actually the weakest contributor in our model. Weight and horsepower are the major contributors but most of the horsepower contribution might be explained by weight as an increase in horsepower generally results in an increase in weight.
+
+The residual plots in Figure 3 appear to exhibit homogeneity, normality, and independence. However, we must be careful about putting too much weight on these plots as they are based on quite a small data set.
+
+**Residuals vs Fitted**
+
+When a linear regression model is suitable for a data set, the residuals are more or less randomly distributed around the 0 line, which appears to be the case here. This suggests that the assumption that the relationship is linear is reasonable. The residuals also appear to roughly form a horizontal band around the 0 line. This suggests that the variances of the error terms are equal.
+
+**Normal Q-Q**
+
+A quantile normal plot is good for checking normality. The plot shows a little more variance than you would expect in a normal distribution but our model doesn't account for all the variance so this is understandable.
+
+**Scale-Location**
+
+For a good model, the values should be more or less randomly distributed. Like the first residuals v fitted plot, there is no discernible pattern to this plot.
+
+**Residuals vs Leverage**
+
+Note that the standardized residuals are more or less centered around zero and reach 2-3 standard deviations away from zero, and symmetrically so about zero, as would be expected for a normal distribution. No point has a large Cook's distance, that is >0.5.
+
+##Exploratory Data Analysis
+
+Now that we know our major factors, we can explore the data more closely. Figure 4 shows a continuous and discrete pairwise plot that highlights how all our predictors interplay in the data.
+
+There is a negative, almost linear correlation between both weight, horsepower and mpg. That is, the higher the weight and horsepower, the lower the mpg.
+
+Some observations;
+
+* Average fuel economy is higher for manual cars
+* A rise in the number of cylinders corresponds to lower mpg
+* Weight is positively correlated with horsepower
+* Horsepower appears to be greater for automatic cars, however, manual cars have high outliers
+
+Figure 5 examines the interplay between cylinders, transmission, weight and mpg. In our data, it appears that automatic cars tend to have more cylinders and manual fewer. This is especially significant since cylinders correspond to weight, and an increase in weight reduces mpg.
+
+***
+##Conclusions
+
+Figure 1 is a box plot of transmission and mpg which suggests that manual cars add 7.2 mpg to fuel economy but the most obvious vehicle design features affecting fuel economy such as vehicle weight are not accounted for. 
+
+Our new model shows manual transmission resulting in a predicted 1.8 increase in mpg when compared to automatic, holding all other variables constant. Our computed 95% confidence interval gives manual transmission an effect of between -1 and 4.7 mpg.
+
+A key observation from our data analysis is that automatic cars tend to have more cylinders and manual tend to have fewer (Figure 5) and an increase in cylinders is correlated with an increase in weight which in turn is negatively correlated with mpg. Whatever tendency automatic cars have for being heavier than manuals in general is compounded by this bias in the data. We can't then answer "Is an automatic or manual transmission better for MPG" without limiting the statement to our data and not the general population.
+
+```{r echo=FALSE, results='hide'}
+
+summary(minmod)
+confint(minmod)
+
+```
 
 
 
 ```{r echo=FALSE}
-aggregate(mpg~am, data=cars, mean)
 
-summary(lm(mpg ~ am, data = cars))$coef
+##make display table for data 
+a1 <- c("Intercept", "Manual","6 Cylinder","8 Cylinder", "Horsepower", "Weight")
+b1 <- c("33.70832390", "1.80921138", "-3.03134449", "-2.16367532", "-0.03210943", "-2.49682942")
+c1 <- c("2.60488618", "1.39630450", "1.40728351", "2.28425172", "0.01369257", "0.88558779")
+d1 <- c("12.940421", "1.295714", "-2.154040", "-0.947214", "-2.345025", "-2.819404")
+e1 <- c("7.733392e-13", "2.064597e-01", "4.068272e-02", "3.522509e-01", "2.693461e-02", "9.081408e-03")
+
+resultsummary <- data.frame("Coefficients"=a1,
+                            "Estimate."=b1,
+                            "Std. Error"=c1,
+                            "t value"=d1,
+                            "Pr(>|t|)"=e1, check.names=F)
+
+library(knitr)
+
+kable(resultsummary, digits = 7, caption = "Model Summary")
+
+
+a2 <- c("Residual standard error:", "Multiple R-squared:", "Adjusted R-squared:","F-statistic:", "p-value:")
+b2 <- c("2.41 on 26 degrees of freedom", "0.8659", "0.8401", "33.57 on 5 and 26 DF", "1.506e-10")
+
+
+resultsummary1 <- data.frame("Bob"=a2,"BOb"=b2)
+
+names(resultsummary1) <- NULL 
+
+kable(resultsummary1, digits = 7)
+
+
+
 ```
 
-```{r}
-vif(minmod)
+
+
+
+\newpage
+##Appendix: Figures
+
+\begin{center}
+\textbf{Figure 1 }: Manual v Automatic Transmission boxplot
+\end{center}
+
+```{r echo=FALSE,  fig.height=3, fig.width=4, fig.align='center'}
+par(mar=c(5, 4, 0.2, 2)) #bottom, left, top, right
+plot(cars$mpg~cars$am, xlab="Transmission", ylab="MPG")
 ```
 
-It appears that cyl is a little highly correlated. Let's test before we throw it out.
+\begin{center}
+\textbf{Figure 2 }: Contribution by Predictor
+\end{center}
 
-```{r echo=FALSE}
-minmod2 = update(minmod,.~. - cyl)
-
-vif(minmod2)
-```
-This looks better, but let's do an ANOVA test to see how significant the change is.
-
-```{r echo=FALSE}
-anova(minmod2, minmod)
+```{r echo=FALSE,  fig.height=5.5, fig.width=6, fig.align='center'}
+par(mfrow=c(2,2), mar=c(5, 4, 0.2, 2) + 0.1) #bottom, left, top, right
+termplot(minmod, partial = TRUE, smooth = panel.smooth)
 ```
 
-Not very significant but I won't disregard it without seeing what it does to the adjusted R squared value.
-```{r echo=FALSE}
+\begin{center}
+\textbf{Figure 3 }: Residual plots for the chosen model
+\end{center}
 
-summary(minmod)$adj.r.squared
-summary(minmod2)$adj.r.squared
+```{r echo=FALSE, fig.height=8, fig.width=8, fig.align='center'}
+par(mfrow=c(2,2), mar=c(5, 4, 0.2, 2) + 0.1) #bottom, left, top, right
+plot(minmod)
+```
+\newpage
+\begin{center}
+\textbf{Figure 4}: Continuous and discrete pairwise plot of major factors
+\end{center}
+
+```{r echo=FALSE, fig.height=6.5, fig.width=10, fig.align='center', message=FALSE}
+library(GGally)
+subcars = subset(cars, select=c("mpg", "am", "cyl", "hp", "wt"))
+gg <- ggpairs(subcars, diag=list(continuous="density", discrete="bar"), axisLabels="show") 
+gg 
 ```
 
-On balance, I think removing it would be too costly to the model fit so it's staying.
+\begin{center}
+\textbf{Figure 5}: Weight and MPG by Transmission and cylinder number
+\end{center}
 
+```{r fig.width=8, echo=FALSE}
+library(ggplot2)
+library(grid)
+facetplot <- ggplot(cars, aes(x = mpg, y = wt, colour = factor(cyl))) + geom_point()
+facetplot + scale_color_brewer(palette="Dark2") + facet_grid(cyl ~ am) + theme(plot.margin=unit(c(0,0,0,2.1),"cm"))
 
-
+```
